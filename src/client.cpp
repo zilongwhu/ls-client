@@ -24,6 +24,9 @@
 #include <arpa/inet.h>
 #include "log.h"
 #include "exnet.h"
+#include "client.h"
+
+ClientEpex cli;
 
 int main(int argc, char *argv[])
 {

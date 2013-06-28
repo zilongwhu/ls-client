@@ -1,4 +1,4 @@
-client: src/*.c
-	gcc -g -Wall -I../lsnet/include -llsnet -L../lsnet -lpthread src/*.c -o client
+client: src/*.cpp include/*.h
+	g++ -g -Wall -D__CPLUSPLUS -I../lsnet/include -Iinclude -lpthread src/*.cpp ../lsnet/src/*.c -o client
 clean:
 	rm client
