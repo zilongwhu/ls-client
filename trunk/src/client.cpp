@@ -144,7 +144,7 @@ void ClientEpex::run()
                     this->done(st, &now);
                     continue;
                 default:
-                    WARNING("should not be here");
+                    WARNING("should not be here, res._status=%hd", res._status);
                     continue;
             }
             sock = st->_talk->_sock;
@@ -240,6 +240,7 @@ void ClientEpex::run()
             }
         }
     }
+    NOTICE("NetPoller is stoped now");
 }
 
 NetPoller::~NetPoller()
