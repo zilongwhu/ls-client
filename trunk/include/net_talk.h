@@ -32,8 +32,8 @@ struct NetTalk
     void *_req_buf;
     void *_res_buf;
 
-    int _req_len;
-    int _res_len;
+    unsigned int _req_len;
+    unsigned int _res_len;
 
     int _time;
 

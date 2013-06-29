@@ -30,14 +30,14 @@ class NetPoller
         NetPoller(const NetPoller &);
         NetPoller &operator =(const NetPoller &);
     public:
-        NetPoller()
+        NetPoller(ClientEpex *epex)
             : _cond(_mutex)
         {
-            _epex = NULL;
+            _epex = epex;
             DLIST_INIT(&_avail_list);
             DLIST_INIT(&_list);
         }
-        ~ NetPoller() { }
+        ~ NetPoller();
 
         void setEpex(ClientEpex *epex) { _epex = epex; }
 

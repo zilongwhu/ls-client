@@ -32,6 +32,7 @@ class ClientEpex
         ClientEpex()
         {
             _epex = NULL;
+            _stop = false;
             DLIST_INIT(&_attach_list);
             DLIST_INIT(&_detach_list);
         }
@@ -40,6 +41,7 @@ class ClientEpex
         {
             epex_close(_epex);
             _epex = NULL;
+            _stop = true;
             __dlist_t *list;
             while (!DLIST_EMPTY(&_attach_list))
             {
@@ -64,8 +66,12 @@ class ClientEpex
         void attach(NetStub *st);
         void detach(NetStub *st);
 
+        void stop() { _stop = true; }
         void run();
     private:
+        void done(NetStub *st, struct timeval *now = NULL);
+    private:
+        bool _stop;
         Mutex _mutex;
         __dlist_t _attach_list;
         __dlist_t _detach_list;
