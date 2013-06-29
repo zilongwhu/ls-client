@@ -27,7 +27,7 @@
 #include "client.h"
 
 ClientEpex cli;
-NetPoller poller;
+NetPoller poller(&cli);
 
 int main(int argc, char *argv[])
 {
