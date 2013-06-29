@@ -21,6 +21,7 @@
 #include "lock.h"
 #include "dlist.h"
 #include "net_talk.h"
+#include "net_stub.h"
 
 class ClientEpex;
 class NetPoller
@@ -40,11 +41,13 @@ class NetPoller
 
         void setEpex(ClientEpex *epex) { _epex = epex; }
 
-        void add(NetTalk *tt);
-        void cancel(NetTalk *tt);
+        void add(NetTalk *talk);
+        void cancel(NetTalk *talk);
         void cancelAll();
-        void done(NetStub *st);
         int poll(NetTalk **talks, int count, int timeout_ms);
+    private:
+        void done(NetStub *st);
+        friend class ClientEpex;
     private:
         Mutex _mutex;
         Cond _cond;
