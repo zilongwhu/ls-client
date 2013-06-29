@@ -3,7 +3,7 @@
  *
  *       Filename:  client.c
  *
- *    Description:  客户端
+ *    Description:  
  *
  *        Version:  1.0
  *        Created:  2012年05月23日 15时24分57秒
@@ -15,100 +15,143 @@
  *
  * =====================================================================================
  */
+#include <string.h>
+#include <limits.h>
+#include "utils.h"
+#include "client_epex.h"
+#include "net_poller.h"
 
-#include <stdio.h>
-#include <strings.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include "log.h"
-#include "exnet.h"
-#include "client.h"
-
-ClientEpex cli;
-
-int main(int argc, char *argv[])
+struct NetStub
 {
-	netresult_t result;
-	char buffer[] = "hello";
-	char buffer2[256];
+    NetTalk *_talk;
 
-	epex_t handle = epex_open(1024);
-	if ( NULL == handle )
-	{
-		return -1;
-	}
-	struct sockaddr_in addr;
-	bzero(&addr, sizeof addr);
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(12345);
-	addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    int _status; /*  */
+    int _timeout;
+    struct timeval _start_tm;
+    struct timeval _done_tm;
+    struct
+    {
+        int _total;
+        int _send_head;
+        int _send_body;
+        int _recv_head;
+        int _recv_body;
+    } _tm;
 
-	int sock = socket(AF_INET, SOCK_STREAM, 0);
-	if ( sock < 0 )
-	{
-		return -1;
-	}
-	int first = 1;
-	if ( epex_connect(handle, sock, &addr, NULL, 100) )
-	{
-		ssize_t sz;
-		do
-		{
-			sz = epex_poll(handle, &result, 1);
-			if ( 1 != sz )
-			{
-				continue;
-			}
-			switch (result._op_type)
-			{
-				case NET_OP_CONNECT:
-					if ( NET_DONE == result._status )
-					{
-						NOTICE("connect ok");
-						if ( !epex_write(handle, sock,
-									"POST /index.html http/1.1\r\ntransfer-encoding:chunked\r\n\r\n\r\n   \r",
-									sizeof("POST /index.html http/1.1\r\ntransfer-encoding:chunked\r\n\r\n\r\n   \r") - 1,
-									NULL, -1) )
-						{
-							goto OUT;
-						}
-						NOTICE("submit write request[%s]", buffer);
-					}
-					else
-					{
-						goto OUT;
-					}
-					break;
-				case NET_OP_WRITE:
-					if ( NET_DONE == result._status )
-					{
-						NOTICE("submit read request");
-						usleep(50*1000);
-						epex_write(handle, sock,
-									"\n 00010 \"\r\n \\\"a\r\n\"\r\n0123456789ABCDEF\r\n 001\r\nL\r\n 0 \r\n first : abc\r\n efg\r\nnext  :  \r\n every    one   \r\n\r\n",
-									sizeof("\n 00010 \"\r\n \\\"a\r\n\"\r\n0123456789ABCDEF\r\n 001\r\nL\r\n 0 \r\n first : abc\r\n efg\r\nnext  :  \r\n every    one   \r\n\r\n") - 1,
-									NULL, -1);
-						if ( 0 == first )
-						{
-							goto OUT;
-						}
-						else
-						{
-							first = 0;
-						}
-					}
-					else
-					{
-						goto OUT;
-					}
-					break;
-			}
-		} while(1);
-OUT:
-		;
-	}
-	epex_close(handle);
-	return 0;
+    __dlist_t _link;
+    __dlist_t _list;
+
+    NetStub(NetTalk *talk)
+    {
+        _talk = talk;
+        _talk->_inner_arg = this;
+        _status = 0;
+        _timeout = -1;
+        ::bzero(&_start_tm, sizeof _start_tm);
+        ::bzero(&_done_tm, sizeof _done_tm);
+        ::bzero(&_tm, sizeof _tm);
+        DLIST_INIT(&_link);
+        DLIST_INIT(&_list);
+    }
+};
+
+void ClientEpex::attach(NetStub *st)
+{
+    AutoLock __lock(_mutex);
+    DLIST_INSERT_B(&st->_link, &_attach_list);
+}
+
+void ClientEpex::detach(NetStub *st)
+{
+    AutoLock __lock(_mutex);
+    if (!DLIST_EMPTY(&st->_link))
+    {
+        DLIST_REMOVE(&st->_link);
+        return ;
+    }
+    DLIST_INSERT_B(&st->_link, &_detach_list);
+}
+
+void ClientEpex::run()
+{
+
+}
+
+void NetPoller::add(NetTalk *tt)
+{
+    if (tt)
+    {
+        NetStub *st = new NetStub(tt);
+        DLIST_INSERT_B(&st->_list, &_list);
+        _epex->attach(st);
+    }
+}
+
+void NetPoller::cancel(NetTalk *tt)
+{
+    if (tt)
+    {
+        NetStub *st = (NetStub *)tt->_inner_arg;
+        if (st)
+        {
+            st->_status |= ~INT_MAX;
+            _epex->detach(st);
+        }
+    }
+}
+
+void NetPoller::cancelAll()
+{
+    for (__dlist_t *p = DLIST_NEXT(&_list); p != &_list; p = DLIST_NEXT(p))
+    {
+        this->cancel(GET_OWNER(p, NetStub, _list)->_talk);
+    }
+}
+
+void NetPoller::done(NetStub *st)
+{
+    if (st)
+    {
+        AutoLock __lock(_mutex);
+        bool empty = DLIST_EMPTY(&_avail_list);
+        DLIST_INSERT_B(&st->_link, &_avail_list);
+        if (empty)
+            _cond.signal();
+    }
+}
+
+int NetPoller::poll(NetTalk **talks, int count, int timeout_ms)
+{
+    if (NULL == talks || count < 0)
+        return -1;
+
+    int i = 0;
+    __dlist_t *ptr;
+    NetStub *stub;
+    struct timeval tv;
+    struct timeval now;
+    int eslap_tm;
+    gettimeofday(&tv, NULL);
+
+    AutoLock __lock(_mutex);
+RETRY:
+    for (; i < count && !DLIST_EMPTY(&_avail_list); ++i)
+    {
+        ptr = DLIST_NEXT(&_avail_list);
+        stub = GET_OWNER(ptr, NetStub, _link);
+        DLIST_REMOVE(ptr);
+        talks[i] = stub->_talk;
+        delete stub;
+    }
+    if (i >= count)
+        return i;
+    while (DLIST_EMPTY(&_avail_list))
+    {
+        gettimeofday(&now, NULL);
+        eslap_tm = (now.tv_sec - tv.tv_sec) * 1000 + (now.tv_usec - tv.tv_usec)/1000;
+        if (eslap_tm >= timeout_ms)
+            return i;
+        _cond.wait(timeout_ms - eslap_tm);
+    }
+    goto RETRY;
 }
