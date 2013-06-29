@@ -21,8 +21,8 @@
 #include "exnet.h"
 #include "dlist.h"
 #include "lock.h"
+#include "net_stub.h"
 
-class NetStub;
 class ClientEpex
 {
     private:

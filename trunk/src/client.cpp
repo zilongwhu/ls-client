@@ -21,40 +21,6 @@
 #include "client_epex.h"
 #include "net_poller.h"
 
-struct NetStub
-{
-    NetTalk *_talk;
-
-    int _status; /*  */
-    int _timeout;
-    struct timeval _start_tm;
-    struct timeval _done_tm;
-    struct
-    {
-        int _total;
-        int _send_head;
-        int _send_body;
-        int _recv_head;
-        int _recv_body;
-    } _tm;
-
-    __dlist_t _link;
-    __dlist_t _list;
-
-    NetStub(NetTalk *talk)
-    {
-        _talk = talk;
-        _talk->_inner_arg = this;
-        _status = 0;
-        _timeout = -1;
-        ::bzero(&_start_tm, sizeof _start_tm);
-        ::bzero(&_done_tm, sizeof _done_tm);
-        ::bzero(&_tm, sizeof _tm);
-        DLIST_INIT(&_link);
-        DLIST_INIT(&_list);
-    }
-};
-
 void ClientEpex::attach(NetStub *st)
 {
     AutoLock __lock(_mutex);
@@ -77,21 +43,21 @@ void ClientEpex::run()
 
 }
 
-void NetPoller::add(NetTalk *tt)
+void NetPoller::add(NetTalk *talk)
 {
-    if (tt)
+    if (talk)
     {
-        NetStub *st = new NetStub(tt);
+        NetStub *st = new NetStub(talk);
         DLIST_INSERT_B(&st->_list, &_list);
         _epex->attach(st);
     }
 }
 
-void NetPoller::cancel(NetTalk *tt)
+void NetPoller::cancel(NetTalk *talk)
 {
-    if (tt)
+    if (talk)
     {
-        NetStub *st = (NetStub *)tt->_inner_arg;
+        NetStub *st = (NetStub *)talk->_inner_arg;
         if (st)
         {
             st->_status |= ~INT_MAX;
