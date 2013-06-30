@@ -61,8 +61,10 @@ void NetPoller::cancel(NetTalk *talk)
 
 void NetPoller::cancelAll()
 {
-    for (__dlist_t *p = DLIST_NEXT(&_list); p != &_list; p = DLIST_NEXT(p))
+    __dlist *p;
+    while (!DLIST_EMPTY(&_list))
     {
+        p = DLIST_NEXT(&_list);
         this->cancel(GET_OWNER(p, NetStub, _list)->_talk);
     }
 }
@@ -91,8 +93,7 @@ RETRY:
         st = GET_OWNER(ptr, NetStub, _avail_list);
         if (st->_talk == talk)
         {
-            DLIST_REMOVE(ptr);
-            delete st;
+            delete st; /* free and remove from lists */
             return 0;
         }
     }
@@ -119,7 +120,7 @@ RETRY:
     {
         ptr = DLIST_NEXT(&_avail_list);
         stub = GET_OWNER(ptr, NetStub, _avail_list);
-        if (stub->_status >= 0) /* not canceled by user */
+        if (!stub->_cancel) /* not canceled by user */
             talks[i++] = stub->_talk;
         delete stub;/* free and remove from lists */
     }

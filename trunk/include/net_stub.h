@@ -51,7 +51,8 @@ struct NetStub
     NetTalk *_talk;
     NetPoller *_poller;
 
-    int _status;
+    int8_t _cancel;
+    int16_t _status;
     int _errno;
     int _timeout;
     struct timeval _start_tm;
@@ -75,6 +76,7 @@ struct NetStub
         _talk = talk;
         _talk->_inner_arg = this;
         _poller = poller;
+        _cancel = 0;
         _status = NETSTUB_INIT;
         _timeout = -1;
         ::bzero(&_start_tm, sizeof _start_tm);
