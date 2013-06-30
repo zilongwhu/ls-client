@@ -22,24 +22,24 @@
 #include "dlist.h"
 #include "net_talk.h"
 #include "net_stub.h"
+#include "client.h"
 
-class ClientEpex;
 class NetPoller
 {
     private:
         NetPoller(const NetPoller &);
         NetPoller &operator =(const NetPoller &);
     public:
-        NetPoller(ClientEpex *epex)
+        NetPoller(Client *cli = NULL)
             : _cond(_mutex)
         {
-            _epex = epex;
+            _client = cli;
             DLIST_INIT(&_avail_list);
             DLIST_INIT(&_list);
         }
         ~ NetPoller();
 
-        void setEpex(ClientEpex *epex) { _epex = epex; }
+        void setClient(Client *cli) { _client = cli; }
 
         bool add(NetTalk *talk, int timeout);
         void cancel(NetTalk *talk);
@@ -54,7 +54,7 @@ class NetPoller
         Cond _cond;
         __dlist_t _avail_list;
         __dlist_t _list;
-        ClientEpex *_epex;
+        Client *_client;
 };
 
 #endif
