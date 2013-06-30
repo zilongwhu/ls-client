@@ -34,6 +34,43 @@ int main(int argc, char *argv[])
     NetPoller poller(&client);
 
     client.run();
+
+    struct sockaddr_in addr;
+    bzero(&addr, sizeof addr);
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(7654);
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    int sock = socket(AF_INET, SOCK_STREAM, 0);
+    connect(sock, (struct sockaddr *)&addr, sizeof addr);
+
+    char req_buf[] = "ABcdefG HI JK lmN";
+    char res_buf[sizeof req_buf];
+
+    NetTalk talk;
+
+    talk._sock = sock;
+    talk._status = 0;
+    talk._errno = 0;
+
+    talk._req_head._magic_num = MAGIC_NUM;
+
+    talk._req_buf = req_buf;
+    talk._req_len = sizeof req_buf;
+
+    talk._res_buf = res_buf;
+    talk._res_len = sizeof res_buf;
+
+    poller.add(&talk, 100);
+    NetTalk *pt;
+    poller.poll(&pt, 1, -1);
+
+    if (pt->_status == NET_ST_DONE)
+        printf("[len=%u][%s]\n", talk._res_head._body_len, res_buf);
+    else
+        printf("status=%d, errno=%d\n", pt->_status, pt->_errno);
+    close(sock);
+
     client.join();
     return 0;
 }
