@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
     talk._res_buf = res_buf;
     talk._res_len = sizeof res_buf;
 
-    poller.add(&talk, 100);
+    poller.add(&talk, 12);
     NetTalk *pt;
     poller.poll(&pt, 1, -1);
 
