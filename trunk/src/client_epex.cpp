@@ -61,6 +61,7 @@ void ClientEpex::run()
         st->_errno = errno;                                \
         epex_detach(_epex, st->_talk->_sock, NULL);        \
     } while(0)
+
     ssize_t ret;
     netresult_t results[20];
     __dlist_t attach_ok_list;
@@ -71,6 +72,8 @@ void ClientEpex::run()
     int tm_left;
     int elasp_tm;
     struct timeval now;
+
+    _stop = false;
     while (!_stop)
     {
         DLIST_INIT(&attach_ok_list);
