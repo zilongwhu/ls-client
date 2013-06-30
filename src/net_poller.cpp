@@ -31,13 +31,14 @@ NetPoller::~NetPoller()
     _epex = NULL;
 }
 
-bool NetPoller::add(NetTalk *talk)
+bool NetPoller::add(NetTalk *talk, int timeout)
 {
     if (talk)
     {
         NetStub *st = new NetStub(talk, this);
         if (st)
         {
+            st->_timeout = timeout;
             DLIST_INSERT_B(&st->_list, &_list);
             _epex->attach(st);
             return true;

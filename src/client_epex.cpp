@@ -52,6 +52,12 @@ void ClientEpex::done(NetStub *st, struct timeval *now)
         gettimeofday(&st->_done_tm, NULL);
     st->_tm._total = (st->_done_tm.tv_sec - st->_start_tm.tv_sec) * 1000
         + (st->_done_tm.tv_usec - st->_start_tm.tv_usec) / 1000;
+    if (st->_cancel)
+        st->_talk->_status = NET_ST_CANCELED;
+    else
+        st->_talk->_status = st->_status;
+    st->_talk->_errno = st->_errno;
+    st->_talk->_time = st->_tm._total;
     st->_poller->done(st);
 }
 
@@ -109,7 +115,7 @@ void ClientEpex::run()
             DLIST_REMOVE(ptr);
             st->_talk->_req_head._magic_num = MAGIC_NUM;
             st->_talk->_req_head._body_len = st->_talk->_req_len;
-            st->_status = NETSTUB_SEND_HEAD;
+            st->_status = NET_ST_SEND_HEAD;
             if (epex_write(_epex, st->_talk->_sock, &st->_talk->_req_head,
                         sizeof(st->_talk->_req_head), NULL, st->_timeout))
             {
@@ -164,10 +170,10 @@ void ClientEpex::run()
                 tm_left = 0;
             switch (st->_status)
             {
-                case NETSTUB_SEND_HEAD:
+                case NET_ST_SEND_HEAD:
                     TRACE("send head to sock[%d] ok", sock);
                     st->_tm._send_head = elasp_tm;
-                    st->_status = NETSTUB_SEND_BODY;
+                    st->_status = NET_ST_SEND_BODY;
                     if (tm_left == 0)
                     {
                         SET_ERROR(NET_ERR_TIMEOUT);
@@ -181,10 +187,10 @@ void ClientEpex::run()
                     }
                     TRACE("try to send body[%u] to sock[%d]", st->_talk->_req_len, sock);
                     break;
-                case NETSTUB_SEND_BODY:
+                case NET_ST_SEND_BODY:
                     TRACE("send body[%u] to sock[%d] ok", st->_talk->_req_len, sock);
                     st->_tm._send_body = elasp_tm - st->_tm._send_head;
-                    st->_status = NETSTUB_RECV_HEAD;
+                    st->_status = NET_ST_RECV_HEAD;
                     if (tm_left == 0)
                     {
                         SET_ERROR(NET_ERR_TIMEOUT);
@@ -198,7 +204,7 @@ void ClientEpex::run()
                     }
                     TRACE("try to recv head from sock[%d]", sock);
                     break;
-                case NETSTUB_RECV_HEAD:
+                case NET_ST_RECV_HEAD:
                     TRACE("recv head from sock[%d] ok", sock);
                     st->_tm._recv_head = elasp_tm - st->_tm._send_body - st->_tm._send_head;
                     if (st->_talk->_res_head._magic_num != MAGIC_NUM)
@@ -211,7 +217,7 @@ void ClientEpex::run()
                         SET_ERROR(NET_ERR_BIG_RESP);
                         continue;
                     }
-                    st->_status = NETSTUB_RECV_BODY;
+                    st->_status = NET_ST_RECV_BODY;
                     if (tm_left == 0)
                     {
                         SET_ERROR(NET_ERR_TIMEOUT);
@@ -225,11 +231,11 @@ void ClientEpex::run()
                     }
                     TRACE("try to recv body[%u] from sock[%d]", st->_talk->_res_head._body_len, sock);
                     break;
-                case NETSTUB_RECV_BODY:
+                case NET_ST_RECV_BODY:
                     TRACE("recv body[%u] from sock[%d] ok", st->_talk->_res_head._body_len, sock);
                     st->_tm._recv_body = elasp_tm - st->_tm._recv_head
                         - st->_tm._send_body - st->_tm._send_head;
-                    st->_status = NETSTUB_DONE;
+                    st->_status = NET_ST_DONE;
                     epex_detach(_epex, sock, NULL);
                     TRACE("talk with sock[%d] ok", sock);
                     break;
