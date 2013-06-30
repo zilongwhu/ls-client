@@ -56,6 +56,7 @@ void NetPoller::cancel(NetTalk *talk)
         {
             _client->detach(st);
             this->poll(talk);
+            talk->_status = NET_ST_CANCELED;
         }
     }
 }
