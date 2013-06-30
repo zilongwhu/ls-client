@@ -52,6 +52,7 @@ class Client
 
         int init(int wn);
         int run();
+        void join();
         void stop();
     private:
         int _worker_num;

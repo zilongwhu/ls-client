@@ -73,14 +73,18 @@ int Client::run()
     return (_worker_num = i);
 }
 
+void Client::join()
+{
+    for (int i = 0; i < _worker_num; ++i)
+    {
+        pthread_join(_tids[i], NULL);
+    }
+}
+
 void Client::stop()
 {
     for (int i = 0; i < _worker_num; ++i)
     {
         _workers[i].stop();
-    }
-    for (int i = 0; i < _worker_num; ++i)
-    {
-        pthread_join(_tids[i], NULL);
     }
 }
