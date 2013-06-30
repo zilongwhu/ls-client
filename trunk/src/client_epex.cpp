@@ -59,6 +59,8 @@ void ClientEpex::done(NetStub *st, struct timeval *now)
     st->_talk->_errno = st->_errno;
     st->_talk->_time = st->_tm._total;
     st->_poller->done(st);
+    TRACE("talk with sock[%d] is done, status[%d], errno[%d]", st->_talk->_sock,
+            st->_talk->_status, st->_talk->_errno);
 }
 
 void ClientEpex::run()
