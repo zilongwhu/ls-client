@@ -30,7 +30,7 @@
 int main(int argc, char *argv[])
 {
     Client client;
-    client.init(2);
+    client.init();
     NetPoller poller(&client);
 
     client.run();
@@ -76,19 +76,22 @@ int main(int argc, char *argv[])
     talk2._res_buf = res_buf;
     talk2._res_len = sizeof res_buf;
 
-    poller.add(&talk, 12);
-    poller.add(&talk2, 16);
+    poller.add(&talk, 1200);
+    poller.add(&talk2, 1600);
 
-    poller.cancel(&talk);
+    usleep(100);
+    poller.cancelAll();
     close(sock);
 
     NetTalk *pt;
-    poller.poll(&pt, 1, -1);
-
-    if (pt->_status == NET_ST_DONE)
-        NOTICE("[len=%u][%s]\n", pt->_res_head._body_len, res_buf);
-    else
-        NOTICE("status=%d, errno=%d\n", pt->_status, pt->_errno);
+    int ret = poller.poll(&pt, 1, -1);
+    if (ret > 0)
+    {
+        if (pt->_status == NET_ST_DONE)
+            NOTICE("[len=%u][%s]\n", pt->_res_head._body_len, res_buf);
+        else
+            NOTICE("status=%d, errno=%d\n", pt->_status, pt->_errno);
+    }
     close(sock2);
 
     client.join();
