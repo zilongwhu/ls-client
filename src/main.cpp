@@ -28,6 +28,7 @@
 
 ClientEpex cli;
 NetPoller poller(&cli);
+Client client;
 
 int main(int argc, char *argv[])
 {
