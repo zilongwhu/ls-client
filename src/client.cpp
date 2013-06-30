@@ -31,6 +31,8 @@ int Client::init(int wn)
 {
     if (wn <= 0)
         wn = 1;
+    if (wn > 127)
+        wn = 127;
     if (_worker_num > 0)
         return 0;
     _tids = new(std::nothrow) pthread_t[wn];

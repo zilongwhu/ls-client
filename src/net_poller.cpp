@@ -17,7 +17,7 @@
  */
 #include "utils.h"
 #include "net_poller.h"
-#include "client_epex.h"
+#include "client.h"
 
 NetPoller::~NetPoller()
 {
@@ -28,7 +28,7 @@ NetPoller::~NetPoller()
     }
     DLIST_INIT(&_avail_list);
     DLIST_INIT(&_list);
-    _epex = NULL;
+    _client = NULL;
 }
 
 bool NetPoller::add(NetTalk *talk, int timeout)
@@ -40,7 +40,7 @@ bool NetPoller::add(NetTalk *talk, int timeout)
         {
             st->_timeout = timeout;
             DLIST_INSERT_B(&st->_list, &_list);
-            _epex->attach(st);
+            _client->attach(st);
             return true;
         }
     }
@@ -54,7 +54,7 @@ void NetPoller::cancel(NetTalk *talk)
         NetStub *st = (NetStub *)talk->_inner_arg;
         if (st)
         {
-            _epex->detach(st);
+            _client->detach(st);
             this->poll(talk);
         }
     }

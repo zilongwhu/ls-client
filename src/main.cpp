@@ -25,11 +25,20 @@
 #include "log.h"
 #include "exnet.h"
 #include "client.h"
+#include "net_poller.h"
 
-ClientEpex cli;
-NetPoller poller(&cli);
-Client client;
+int main(int argc, char *argv[])
+{
+    Client client;
+    client.init(2);
+    NetPoller poller(&client);
 
+    client.run();
+    client.join();
+    return 0;
+}
+
+#ifdef __ABC_TEST__
 int main(int argc, char *argv[])
 {
 	netresult_t result;
@@ -114,3 +123,4 @@ OUT:
 	epex_close(handle);
 	return 0;
 }
+#endif

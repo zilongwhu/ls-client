@@ -19,8 +19,9 @@
 #ifndef __LS_CLIENT_H__
 #define __LS_CLIENT_H__
 
+#include <stdlib.h>
 #include <pthread.h>
-#include "net_poller.h"
+#include "net_stub.h"
 #include "client_epex.h"
 
 class Client
@@ -50,10 +51,27 @@ class Client
             _worker_num = 0;
         }
 
-        int init(int wn);
+        int init(int wn = 1);
         int run();
         void join();
         void stop();
+
+        void attach(NetStub *st)
+        {
+            if (st)
+            {
+                st->_idx = rand()%_worker_num;
+                _workers[st->_idx].attach(st);
+            }
+        }
+        void detach(NetStub *st)
+        {
+            if (st)
+            {
+                _workers[st->_idx].detach(st);
+                st->_idx = 0;
+            }
+        }
     private:
         int _worker_num;
         pthread_t *_tids;
