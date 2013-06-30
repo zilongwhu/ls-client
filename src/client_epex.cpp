@@ -30,7 +30,9 @@ void ClientEpex::attach(NetStub *st)
 
 void ClientEpex::detach(NetStub *st)
 {
-    st->_status |= ~INT_MAX;
+    if (st->_cancel)
+        return ;
+    st->_cancel = 1;
     {
         AutoLock __lock(_mutex);
         if (!DLIST_EMPTY(&st->_att_list))
@@ -146,7 +148,7 @@ void ClientEpex::run()
                     continue;
             }
             sock = st->_talk->_sock;
-            if (st->_status < 0) /* canceled by user */
+            if (st->_cancel) /* canceled by user */
             {
                 TRACE("sock[%d] is canceled by user", sock);
                 epex_detach(_epex, sock, NULL);
