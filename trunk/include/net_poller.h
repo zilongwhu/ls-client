@@ -41,11 +41,12 @@ class NetPoller
 
         void setEpex(ClientEpex *epex) { _epex = epex; }
 
-        void add(NetTalk *talk);
+        bool add(NetTalk *talk);
         void cancel(NetTalk *talk);
         void cancelAll();
         int poll(NetTalk **talks, int count, int timeout_ms);
     private:
+        int poll(NetTalk *talk);
         void done(NetStub *st);
         friend class ClientEpex;
     private:
