@@ -251,14 +251,19 @@ NetPoller::~NetPoller()
     _epex = NULL;
 }
 
-void NetPoller::add(NetTalk *talk)
+bool NetPoller::add(NetTalk *talk)
 {
     if (talk)
     {
         NetStub *st = new NetStub(talk, this);
-        DLIST_INSERT_B(&st->_list, &_list);
-        _epex->attach(st);
+        if (st)
+        {
+            DLIST_INSERT_B(&st->_list, &_list);
+            _epex->attach(st);
+            return true;
+        }
     }
+    return false;
 }
 
 void NetPoller::cancel(NetTalk *talk)
@@ -269,6 +274,7 @@ void NetPoller::cancel(NetTalk *talk)
         if (st)
         {
             _epex->detach(st);
+            this->poll(talk);
         }
     }
 }
@@ -286,11 +292,32 @@ void NetPoller::done(NetStub *st)
     if (st)
     {
         AutoLock __lock(_mutex);
-        bool empty = DLIST_EMPTY(&_avail_list);
         DLIST_INSERT_B(&st->_avail_list, &_avail_list);
-        if (empty)
-            _cond.signal();
+        _cond.signal();
     }
+}
+
+int NetPoller::poll(NetTalk *talk)
+{
+    if (NULL == talk)
+        return -1;
+    __dlist_t *ptr;
+    NetStub *st;
+    AutoLock __lock(_mutex);
+RETRY:
+    for (ptr = DLIST_NEXT(&_avail_list);
+            ptr != &_avail_list; ptr = DLIST_NEXT(ptr))
+    {
+        st = GET_OWNER(ptr, NetStub, _avail_list);
+        if (st->_talk == talk)
+        {
+            DLIST_REMOVE(ptr);
+            delete st;
+            return 0;
+        }
+    }
+    _cond.wait(-1);
+    goto RETRY;
 }
 
 int NetPoller::poll(NetTalk **talks, int count, int timeout_ms)
