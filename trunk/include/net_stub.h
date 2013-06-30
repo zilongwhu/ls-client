@@ -65,9 +65,10 @@ struct NetStub
         int _recv_body;
     } _tm;
 
-    __dlist_t _link;
     __dlist_t _list;
+    __dlist_t _avail_list;
     __dlist_t _att_list;
+    __dlist_t _tmp_list;
 
     NetStub(NetTalk *talk, NetPoller *poller)
     {
@@ -79,9 +80,10 @@ struct NetStub
         ::bzero(&_start_tm, sizeof _start_tm);
         ::bzero(&_done_tm, sizeof _done_tm);
         ::bzero(&_tm, sizeof _tm);
-        DLIST_INIT(&_link);
         DLIST_INIT(&_list);
+        DLIST_INIT(&_avail_list);
         DLIST_INIT(&_att_list);
+        DLIST_INIT(&_tmp_list);
     }
 
     ~NetStub()
@@ -90,9 +92,10 @@ struct NetStub
             _talk->_inner_arg = NULL;
         _talk = NULL;
         _poller = NULL;
-        DLIST_REMOVE(&_link);
         DLIST_REMOVE(&_list);
+        DLIST_REMOVE(&_avail_list);
         DLIST_REMOVE(&_att_list);
+        DLIST_REMOVE(&_tmp_list);
     }
 };
 

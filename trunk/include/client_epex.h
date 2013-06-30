@@ -34,7 +34,6 @@ class ClientEpex
             _epex = NULL;
             _stop = false;
             DLIST_INIT(&_attach_list);
-            DLIST_INIT(&_detach_list);
         }
 
         ~ClientEpex()
@@ -46,11 +45,6 @@ class ClientEpex
             while (!DLIST_EMPTY(&_attach_list))
             {
                 list = DLIST_NEXT(&_attach_list);
-                DLIST_REMOVE(list);
-            }
-            while (!DLIST_EMPTY(&_detach_list))
-            {
-                list = DLIST_NEXT(&_detach_list);
                 DLIST_REMOVE(list);
             }
         }
@@ -74,7 +68,6 @@ class ClientEpex
         bool _stop;
         Mutex _mutex;
         __dlist_t _attach_list;
-        __dlist_t _detach_list;
 
         epex_t _epex;
 };
