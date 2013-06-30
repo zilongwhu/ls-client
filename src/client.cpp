@@ -26,7 +26,7 @@ void ClientEpex::attach(NetStub *st)
 {
     gettimeofday(&st->_start_tm, NULL);
     AutoLock __lock(_mutex);
-    DLIST_INSERT_B(&st->_link, &_attach_list);
+    DLIST_INSERT_B(&st->_att_list, &_attach_list);
 }
 
 void ClientEpex::detach(NetStub *st)
@@ -34,15 +34,11 @@ void ClientEpex::detach(NetStub *st)
     st->_status |= ~INT_MAX;
     {
         AutoLock __lock(_mutex);
-        if (!DLIST_EMPTY(&st->_link))
+        if (!DLIST_EMPTY(&st->_att_list))
         {
-            DLIST_REMOVE(&st->_link);
+            DLIST_REMOVE(&st->_att_list);/* still in _attach_list */
         }
-        else
-        {
-            DLIST_INSERT_B(&st->_link, &_detach_list);
-            return ;
-        }
+        else return ;
     }
     this->done(st);
 }
@@ -60,6 +56,12 @@ void ClientEpex::done(NetStub *st, struct timeval *now)
 
 void ClientEpex::run()
 {
+#define SET_ERROR(errno)                                   \
+    do                                                     \
+    {                                                      \
+        st->_errno = errno;                                \
+        epex_detach(_epex, st->_talk->_sock, NULL);        \
+    } while(0)
     ssize_t ret;
     netresult_t results[20];
     __dlist_t attach_ok_list;
@@ -76,29 +78,22 @@ void ClientEpex::run()
         DLIST_INIT(&attach_fail_list);
         {
             AutoLock __lock(_mutex);
-            while (!DLIST_EMPTY(&_detach_list))
-            {
-                ptr = DLIST_NEXT(&_detach_list);
-                st = GET_OWNER(ptr, NetStub, _link);
-                DLIST_REMOVE(ptr);
-                epex_detach(_epex, st->_talk->_sock, NULL);
-            }
             while (!DLIST_EMPTY(&_attach_list))
             {
                 ptr = DLIST_NEXT(&_attach_list);
-                st = GET_OWNER(ptr, NetStub, _link);
+                st = GET_OWNER(ptr, NetStub, _att_list);
                 DLIST_REMOVE(ptr);
                 if (epex_attach(_epex, st->_talk->_sock, st, -1))
-                    DLIST_INSERT_B(&st->_att_list, &attach_ok_list);
+                    DLIST_INSERT_B(&st->_tmp_list, &attach_ok_list);
                 else
-                    DLIST_INSERT_B(&st->_att_list, &attach_fail_list);
+                    DLIST_INSERT_B(&st->_tmp_list, &attach_fail_list);
             }
         }
         gettimeofday(&now, NULL);
         while (!DLIST_EMPTY(&attach_fail_list))
         {
             ptr = DLIST_NEXT(&attach_fail_list);
-            st = GET_OWNER(ptr, NetStub, _att_list);
+            st = GET_OWNER(ptr, NetStub, _tmp_list);
             DLIST_REMOVE(ptr);
             st->_errno = NET_ERR_ATTACH_FAIL;
             this->done(st, &now);
@@ -106,16 +101,19 @@ void ClientEpex::run()
         while (!DLIST_EMPTY(&attach_ok_list))
         {
             ptr = DLIST_NEXT(&attach_ok_list);
-            st = GET_OWNER(ptr, NetStub, _att_list);
+            st = GET_OWNER(ptr, NetStub, _tmp_list);
             DLIST_REMOVE(ptr);
             st->_talk->_req_head._magic_num = MAGIC_NUM;
             st->_talk->_req_head._body_len = st->_talk->_req_len;
             st->_status = NETSTUB_SEND_HEAD;
-            if (!epex_write(_epex, st->_talk->_sock, &st->_talk->_req_head,
+            if (epex_write(_epex, st->_talk->_sock, &st->_talk->_req_head,
                         sizeof(st->_talk->_req_head), NULL, st->_timeout))
             {
-                st->_errno = NET_ERR_WRITE;
-                epex_detach(_epex, st->_talk->_sock, NULL);
+                TRACE("try to send head to sock[%d]", st->_talk->_sock);
+            }
+            else
+            {
+                SET_ERROR(NET_ERR_WRITE);
             }
         }
         ret = epex_poll(_epex, results, sizeof(results)/sizeof(results[0]));
@@ -129,12 +127,10 @@ void ClientEpex::run()
                 case NET_DONE:
                     break;
                 case NET_ECLOSED:
-                    st->_errno = NET_ERR_CLOSED;
-                    epex_detach(_epex, sock, NULL);
+                    SET_ERROR(NET_ERR_CLOSED);
                     continue;
                 case NET_ETIMEOUT:
-                    st->_errno = NET_ERR_TIMEOUT;
-                    epex_detach(_epex, sock, NULL);
+                    SET_ERROR(NET_ERR_TIMEOUT);
                     continue;
                 case NET_ERROR:
                     st->_errno = res._errno;
@@ -148,6 +144,12 @@ void ClientEpex::run()
                     continue;
             }
             sock = st->_talk->_sock;
+            if (st->_status < 0) /* canceled by user */
+            {
+                TRACE("sock[%d] is canceled by user", sock);
+                epex_detach(_epex, sock, NULL);
+                continue;
+            }
             elasp_tm = (now.tv_sec - st->_start_tm.tv_sec) * 1000
                 + (now.tv_usec - st->_start_tm.tv_usec) / 1000;
             if (st->_timeout < 0)
@@ -164,15 +166,13 @@ void ClientEpex::run()
                     st->_status = NETSTUB_SEND_BODY;
                     if (tm_left == 0)
                     {
-                        st->_errno = NET_ERR_TIMEOUT;
-                        epex_detach(_epex, sock, NULL);
+                        SET_ERROR(NET_ERR_TIMEOUT);
                         continue;
                     }
                     if (!epex_write(_epex, sock, st->_talk->_req_buf, st->_talk->_req_len,
                                 NULL, tm_left))
                     {
-                        st->_errno = NET_ERR_WRITE;
-                        epex_detach(_epex, sock, NULL);
+                        SET_ERROR(NET_ERR_WRITE);
                         continue;
                     }
                     TRACE("try to send body[%u] to sock[%d]", st->_talk->_req_len, sock);
@@ -183,15 +183,13 @@ void ClientEpex::run()
                     st->_status = NETSTUB_RECV_HEAD;
                     if (tm_left == 0)
                     {
-                        st->_errno = NET_ERR_TIMEOUT;
-                        epex_detach(_epex, sock, NULL);
+                        SET_ERROR(NET_ERR_TIMEOUT);
                         continue;
                     }
                     if (!epex_read(_epex, sock, &st->_talk->_res_head, sizeof(st->_talk->_res_head),
                                 NULL, tm_left))
                     {
-                        st->_errno = NET_ERR_WRITE;
-                        epex_detach(_epex, sock, NULL);
+                        SET_ERROR(NET_ERR_READ);
                         continue;
                     }
                     TRACE("try to recv head from sock[%d]", sock);
@@ -201,35 +199,32 @@ void ClientEpex::run()
                     st->_tm._recv_head = elasp_tm - st->_tm._send_body - st->_tm._send_head;
                     if (st->_talk->_res_head._magic_num != MAGIC_NUM)
                     {
-                        st->_errno = NET_ERR_MAGIC_NUM;
-                        epex_detach(_epex, sock, NULL);
+                        SET_ERROR(NET_ERR_MAGIC_NUM);
                         continue;
                     }
                     if (st->_talk->_res_head._body_len > st->_talk->_res_len)
                     {
-                        st->_errno = NET_ERR_BIG_RESP;
-                        epex_detach(_epex, sock, NULL);
+                        SET_ERROR(NET_ERR_BIG_RESP);
                         continue;
                     }
                     st->_status = NETSTUB_RECV_BODY;
                     if (tm_left == 0)
                     {
-                        st->_errno = NET_ERR_TIMEOUT;
-                        epex_detach(_epex, sock, NULL);
+                        SET_ERROR(NET_ERR_TIMEOUT);
                         continue;
                     }
                     if (!epex_read(_epex, sock, st->_talk->_res_buf, st->_talk->_res_head._body_len,
                                 NULL, tm_left))
                     {
-                        st->_errno = NET_ERR_WRITE;
-                        epex_detach(_epex, sock, NULL);
+                        SET_ERROR(NET_ERR_READ);
                         continue;
                     }
                     TRACE("try to recv body[%u] from sock[%d]", st->_talk->_res_head._body_len, sock);
                     break;
                 case NETSTUB_RECV_BODY:
                     TRACE("recv body[%u] from sock[%d] ok", st->_talk->_res_head._body_len, sock);
-                    st->_tm._recv_body = elasp_tm - st->_tm._recv_head - st->_tm._send_body - st->_tm._send_head;
+                    st->_tm._recv_body = elasp_tm - st->_tm._recv_head
+                        - st->_tm._send_body - st->_tm._send_head;
                     st->_status = NETSTUB_DONE;
                     epex_detach(_epex, sock, NULL);
                     TRACE("talk with sock[%d] ok", sock);
@@ -241,6 +236,7 @@ void ClientEpex::run()
         }
     }
     NOTICE("NetPoller is stoped now");
+#undef SET_ERROR
 }
 
 NetPoller::~NetPoller()
@@ -291,7 +287,7 @@ void NetPoller::done(NetStub *st)
     {
         AutoLock __lock(_mutex);
         bool empty = DLIST_EMPTY(&_avail_list);
-        DLIST_INSERT_B(&st->_link, &_avail_list);
+        DLIST_INSERT_B(&st->_avail_list, &_avail_list);
         if (empty)
             _cond.signal();
     }
@@ -315,7 +311,7 @@ RETRY:
     while (i < count && !DLIST_EMPTY(&_avail_list))
     {
         ptr = DLIST_NEXT(&_avail_list);
-        stub = GET_OWNER(ptr, NetStub, _link);
+        stub = GET_OWNER(ptr, NetStub, _avail_list);
         if (stub->_status >= 0) /* not canceled by user */
             talks[i++] = stub->_talk;
         delete stub;/* free and remove from lists */
