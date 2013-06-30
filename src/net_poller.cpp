@@ -129,6 +129,11 @@ RETRY:
         return i;
     while (DLIST_EMPTY(&_avail_list))
     {
+        if (timeout_ms < 0)
+        {
+            _cond.wait(-1);
+            continue;
+        }
         gettimeofday(&now, NULL);
         eslap_tm = (now.tv_sec - tv.tv_sec) * 1000 + (now.tv_usec - tv.tv_usec)/1000;
         if (eslap_tm >= timeout_ms)
