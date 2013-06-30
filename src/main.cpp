@@ -42,12 +42,15 @@ int main(int argc, char *argv[])
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     int sock = socket(AF_INET, SOCK_STREAM, 0);
+    int sock2 = socket(AF_INET, SOCK_STREAM, 0);
     connect(sock, (struct sockaddr *)&addr, sizeof addr);
+    connect(sock2, (struct sockaddr *)&addr, sizeof addr);
 
     char req_buf[] = "ABcdefG HI JK lmN";
     char res_buf[sizeof req_buf];
 
     NetTalk talk;
+    NetTalk talk2;
 
     talk._sock = sock;
     talk._status = 0;
@@ -61,15 +64,32 @@ int main(int argc, char *argv[])
     talk._res_buf = res_buf;
     talk._res_len = sizeof res_buf;
 
+    talk2._sock = sock2;
+    talk2._status = 0;
+    talk2._errno = 0;
+
+    talk2._req_head._magic_num = MAGIC_NUM;
+
+    talk2._req_buf = req_buf;
+    talk2._req_len = sizeof req_buf;
+
+    talk2._res_buf = res_buf;
+    talk2._res_len = sizeof res_buf;
+
     poller.add(&talk, 12);
+    poller.add(&talk2, 16);
+
+    poller.cancel(&talk);
+    close(sock);
+
     NetTalk *pt;
     poller.poll(&pt, 1, -1);
 
     if (pt->_status == NET_ST_DONE)
-        printf("[len=%u][%s]\n", talk._res_head._body_len, res_buf);
+        NOTICE("[len=%u][%s]\n", pt->_res_head._body_len, res_buf);
     else
-        printf("status=%d, errno=%d\n", pt->_status, pt->_errno);
-    close(sock);
+        NOTICE("status=%d, errno=%d\n", pt->_status, pt->_errno);
+    close(sock2);
 
     client.join();
     return 0;
