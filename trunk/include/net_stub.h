@@ -24,27 +24,6 @@
 #include "dlist.h"
 #include "net_talk.h"
 
-enum
-{
-    NETSTUB_INIT = 0,
-    NETSTUB_SEND_HEAD,
-    NETSTUB_SEND_BODY,
-    NETSTUB_RECV_HEAD,
-    NETSTUB_RECV_BODY,
-    NETSTUB_DONE,
-};
-
-enum
-{
-    NET_ERR_ATTACH_FAIL = -1,
-    NET_ERR_TIMEOUT = -2,
-    NET_ERR_CLOSED = -3,
-    NET_ERR_READ = -4,
-    NET_ERR_WRITE = -5,
-    NET_ERR_MAGIC_NUM = -6,
-    NET_ERR_BIG_RESP = -7,
-};
-
 class NetPoller;
 struct NetStub
 {
@@ -77,7 +56,8 @@ struct NetStub
         _talk->_inner_arg = this;
         _poller = poller;
         _cancel = 0;
-        _status = NETSTUB_INIT;
+        _status = NET_ST_INIT;
+        _errno = 0;
         _timeout = -1;
         ::bzero(&_start_tm, sizeof _start_tm);
         ::bzero(&_done_tm, sizeof _done_tm);

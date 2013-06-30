@@ -41,7 +41,7 @@ class NetPoller
 
         void setEpex(ClientEpex *epex) { _epex = epex; }
 
-        bool add(NetTalk *talk);
+        bool add(NetTalk *talk, int timeout);
         void cancel(NetTalk *talk);
         void cancelAll();
         int poll(NetTalk **talks, int count, int timeout_ms);

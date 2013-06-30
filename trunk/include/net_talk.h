@@ -20,6 +20,28 @@
 
 #include "nethead.h"
 
+enum
+{
+    NET_ST_INIT = 0,
+    NET_ST_CANCELED,
+    NET_ST_SEND_HEAD,
+    NET_ST_SEND_BODY,
+    NET_ST_RECV_HEAD,
+    NET_ST_RECV_BODY,
+    NET_ST_DONE,
+};
+
+enum
+{
+    NET_ERR_ATTACH_FAIL = -1,
+    NET_ERR_TIMEOUT = -2,
+    NET_ERR_CLOSED = -3,
+    NET_ERR_READ = -4,
+    NET_ERR_WRITE = -5,
+    NET_ERR_MAGIC_NUM = -6,
+    NET_ERR_BIG_RESP = -7,
+};
+
 struct NetTalk
 {
     int _sock;
