@@ -1,7 +1,7 @@
 /*
  * =====================================================================================
  *
- *       Filename:  client_epex.cpp
+ *       Filename:  net_proxy.cpp
  *
  *    Description:  
  *
@@ -18,17 +18,17 @@
 #include <limits.h>
 #include "log.h"
 #include "utils.h"
-#include "client_epex.h"
+#include "net_proxy.h"
 #include "net_poller.h"
 
-void ClientEpex::attach(NetStub *st)
+void NetProxy::attach(NetStub *st)
 {
     gettimeofday(&st->_start_tm, NULL);
     AutoLock __lock(_mutex);
     DLIST_INSERT_B(&st->_att_list, &_attach_list);
 }
 
-void ClientEpex::detach(NetStub *st)
+void NetProxy::detach(NetStub *st)
 {
     if (st->_cancel)
         return ;
@@ -44,7 +44,7 @@ void ClientEpex::detach(NetStub *st)
     this->done(st);
 }
 
-void ClientEpex::done(NetStub *st, struct timeval *now)
+void NetProxy::done(NetStub *st, struct timeval *now)
 {
     if (now)
         st->_done_tm = *now;
@@ -63,7 +63,7 @@ void ClientEpex::done(NetStub *st, struct timeval *now)
     st->_poller->done(st);
 }
 
-void ClientEpex::run()
+void NetProxy::run()
 {
 #define SET_ERROR(errno)                                   \
     do                                                     \

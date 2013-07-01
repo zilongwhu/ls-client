@@ -48,7 +48,7 @@ class NetPoller
     private:
         int poll(NetTalk *talk);
         void done(NetStub *st);
-        friend class ClientEpex;
+        friend class NetProxy;
     private:
         Mutex _mutex;
         Cond _cond;

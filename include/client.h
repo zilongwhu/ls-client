@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include "net_stub.h"
-#include "client_epex.h"
+#include "net_proxy.h"
 
 class Client
 {
@@ -75,7 +75,7 @@ class Client
     private:
         int _worker_num;
         pthread_t *_tids;
-        ClientEpex *_workers;
+        NetProxy *_workers;
 };
 
 #endif

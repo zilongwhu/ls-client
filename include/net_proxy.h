@@ -1,7 +1,7 @@
 /*
  * =====================================================================================
  *
- *       Filename:  client_epex.h
+ *       Filename:  net_proxy.h
  *
  *    Description:  
  *
@@ -15,28 +15,28 @@
  *
  * =====================================================================================
  */
-#ifndef __LS_CLIENT_EPEX_H__
-#define __LS_CLIENT_EPEX_H__
+#ifndef __LS_NET_PROXY_H__
+#define __LS_NET_PROXY_H__
 
 #include "exnet.h"
 #include "dlist.h"
 #include "lock.h"
 #include "net_stub.h"
 
-class ClientEpex
+class NetProxy
 {
     private:
-        ClientEpex(const ClientEpex &);
-        ClientEpex &operator =(const ClientEpex &);
+        NetProxy(const NetProxy &);
+        NetProxy &operator =(const NetProxy &);
     public:
-        ClientEpex()
+        NetProxy()
         {
             _epex = NULL;
             _stop = false;
             DLIST_INIT(&_attach_list);
         }
 
-        ~ClientEpex()
+        ~NetProxy()
         {
             epex_close(_epex);
             _epex = NULL;
