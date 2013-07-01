@@ -31,8 +31,9 @@ struct NetStub
     NetPoller *_poller;
 
     int8_t _idx;
+    int8_t _done;
     int8_t _cancel;
-    int16_t _status;
+    int8_t _status;
     int _errno;
     int _timeout;
     struct timeval _start_tm;
@@ -57,6 +58,7 @@ struct NetStub
         _talk->_inner_arg = this;
         _poller = poller;
         _idx = 0;
+        _done = 0;
         _cancel = 0;
         _status = NET_ST_INIT;
         _errno = 0;

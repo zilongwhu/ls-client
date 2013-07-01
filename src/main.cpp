@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
     poller.add(&talk2, 1600);
 
     usleep(100);
-    poller.cancelAll();
+    poller.cancel(&talk);
     close(sock);
 
     NetTalk *pt;

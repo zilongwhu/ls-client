@@ -76,6 +76,7 @@ void NetPoller::done(NetStub *st)
     if (st)
     {
         AutoLock __lock(_mutex);
+        st->_done = 1;
         DLIST_INSERT_B(&st->_avail_list, &_avail_list);
         _cond.signal();
     }
@@ -85,19 +86,14 @@ int NetPoller::poll(NetTalk *talk)
 {
     if (NULL == talk)
         return -1;
-    __dlist_t *ptr;
     NetStub *st;
     AutoLock __lock(_mutex);
 RETRY:
-    for (ptr = DLIST_NEXT(&_avail_list);
-            ptr != &_avail_list; ptr = DLIST_NEXT(ptr))
+    st = (NetStub *)talk->_inner_arg;
+    if (st->_done)
     {
-        st = GET_OWNER(ptr, NetStub, _avail_list);
-        if (st->_talk == talk)
-        {
-            delete st; /* free and remove from lists */
-            return 0;
-        }
+        delete st;
+        return 0;
     }
     _cond.wait(-1);
     goto RETRY;
