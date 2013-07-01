@@ -22,8 +22,8 @@
 #include "dlist.h"
 #include "net_talk.h"
 #include "net_stub.h"
-#include "client.h"
 
+class Client;
 class NetPoller
 {
     private:
