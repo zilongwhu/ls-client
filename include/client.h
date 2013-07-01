@@ -23,6 +23,7 @@
 #include <pthread.h>
 #include "net_stub.h"
 #include "net_proxy.h"
+#include "net_poller.h"
 
 class Client
 {
