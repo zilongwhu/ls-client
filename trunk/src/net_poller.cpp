@@ -15,6 +15,7 @@
  *
  * =====================================================================================
  */
+#include <new>
 #include "utils.h"
 #include "net_poller.h"
 #include "client.h"
@@ -35,7 +36,7 @@ bool NetPoller::add(NetTalk *talk, int timeout)
 {
     if (talk)
     {
-        NetStub *st = new NetStub(talk, this);
+        NetStub *st = new(std::nothrow) NetStub(talk, this);
         if (st)
         {
             st->_timeout = timeout;
