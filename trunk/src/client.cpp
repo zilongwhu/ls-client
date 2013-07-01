@@ -22,7 +22,7 @@
 
 static void *worker(void *arg)
 {
-    ClientEpex *ep = (ClientEpex *)arg;
+    NetProxy *ep = (NetProxy *)arg;
     ep->run();
     return NULL;
 }
@@ -36,7 +36,7 @@ int Client::init(int wn)
     if (_worker_num > 0)
         return 0;
     _tids = new(std::nothrow) pthread_t[wn];
-    _workers = new(std::nothrow) ClientEpex[wn];
+    _workers = new(std::nothrow) NetProxy[wn];
     if (NULL == _tids || NULL == _workers)
         goto FAIL;
     for (int i = 0; i < wn; ++i)
