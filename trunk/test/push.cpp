@@ -39,12 +39,12 @@ void *worker(void *args)
     addr.sin_port = htons(7654);
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-        int sock = socket(AF_INET, SOCK_STREAM, 0);
-        connect(sock, (struct sockaddr *)&addr, sizeof addr);
-
     char res_buf[sizeof req_buf];
     while (1)
     {
+        int sock = socket(AF_INET, SOCK_STREAM, 0);
+        connect(sock, (struct sockaddr *)&addr, sizeof addr);
+
         NetTalk talk;
 
         talk._sock = sock;
@@ -70,11 +70,11 @@ void *worker(void *args)
             else
             {
                 WARNING("process fail, status=%d, errno=%d", pt->_status, pt->_errno);
-                break;
             }
         }
+
+        close(sock);
     }
-    close(sock);
 
     return NULL;
 }

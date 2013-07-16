@@ -5,4 +5,6 @@ client: test/main.cpp
 client2: test/push.cpp
 	g++ -g -Wall -D__CPLUSPLUS -DDEBUG_EPEX -I../lsnet/include -Iinclude src/*.cpp test/push.cpp ../lsnet/src/*.c -o client2 -lpthread
 clean:
-	rm client
+	rm -rf libclient.so
+	rm -rf client
+	rm -rf client2
