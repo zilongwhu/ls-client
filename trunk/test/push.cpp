@@ -39,41 +39,63 @@ void *worker(void *args)
     addr.sin_port = htons(7654);
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    char res_buf[sizeof req_buf];
+    char *res_buf = new char[sizeof(req_buf)*128];
     while (1)
     {
-        int sock = socket(AF_INET, SOCK_STREAM, 0);
-        connect(sock, (struct sockaddr *)&addr, sizeof addr);
+        int num = 0;
+        int socks[128];
+        NetTalk talk[128];
 
-        NetTalk talk;
-
-        talk._sock = sock;
-        talk._status = 0;
-        talk._errno = 0;
-
-        talk._req_head._magic_num = MAGIC_NUM;
-
-        talk._req_buf = req_buf;
-        talk._req_len = sizeof req_buf;
-
-        talk._res_buf = res_buf;
-        talk._res_len = sizeof res_buf;
-
-        poller.add(&talk, 1000);
-
-        NetTalk *pt;
-        int ret = poller.poll(&pt, 1, -1);
-        if (ret > 0)
+        NOTICE("start to process.");
+        for (int i = 0; i < sizeof socks/sizeof socks[0]; ++i)
         {
-            if (pt->_status == NET_ST_DONE)
-                NOTICE("process ok, [len=%u]", pt->_res_head._body_len);
-            else
+            socks[i] = socket(AF_INET, SOCK_STREAM, 0);
+            if (socks[i] < 0)
+                break;
+            if (connect(socks[i], (struct sockaddr *)&addr, sizeof addr) < 0)
             {
-                WARNING("process fail, status=%d, errno=%d", pt->_status, pt->_errno);
+                close(socks[i]);
+                break;
             }
+
+            talk[i]._sock = socks[i];
+            talk[i]._status = 0;
+            talk[i]._errno = 0;
+
+            talk[i]._req_head._magic_num = MAGIC_NUM;
+
+            talk[i]._req_buf = req_buf;
+            talk[i]._req_len = sizeof req_buf;
+
+            talk[i]._res_buf = res_buf + i*sizeof(req_buf);
+            talk[i]._res_len = sizeof req_buf;
+
+            if (!poller.add(talk + i, 1000))
+            {
+                close(socks[i]);
+                break;
+            }
+            ++num;
         }
 
-        close(sock);
+        NetTalk *pt[128];
+        int ret = poller.poll(pt, num, -1);
+        if (ret != num)
+        {
+            FATAL("ret[%d] != num[%d].", ret, num);
+        }
+        else for(int i = 0; i < ret; ++i)
+        {
+            if (pt[i]->_status == NET_ST_DONE)
+                NOTICE("process sock[%d] ok, [len=%u]", pt[i]->_sock, pt[i]->_res_head._body_len);
+            else
+                WARNING("process sock[%d] fail, status=%d, errno=%d", pt[i]->_sock, pt[i]->_status, pt[i]->_errno);
+        }
+        for (int i = 0; i < num; ++i)
+        {
+            close(socks[i]);
+        }
+        NOTICE("end of process, num=%d.", num);
     }
 
     return NULL;
