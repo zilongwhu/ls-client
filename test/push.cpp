@@ -33,14 +33,14 @@ void *worker(void *args)
 {
     NetPoller poller(&client);
 
-    int sock = socket(AF_INET, SOCK_STREAM, 0);
-
     struct sockaddr_in addr;
     bzero(&addr, sizeof addr);
     addr.sin_family = AF_INET;
     addr.sin_port = htons(7654);
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    connect(sock, (struct sockaddr *)&addr, sizeof addr);
+
+        int sock = socket(AF_INET, SOCK_STREAM, 0);
+        connect(sock, (struct sockaddr *)&addr, sizeof addr);
 
     char res_buf[sizeof req_buf];
     while (1)
@@ -68,7 +68,10 @@ void *worker(void *args)
             if (pt->_status == NET_ST_DONE)
                 NOTICE("process ok, [len=%u]", pt->_res_head._body_len);
             else
+            {
                 WARNING("process fail, status=%d, errno=%d", pt->_status, pt->_errno);
+                break;
+            }
         }
     }
     close(sock);
