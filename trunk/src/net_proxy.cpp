@@ -134,6 +134,11 @@ void NetProxy::run()
         {
             const netresult_t &res = results[i];
             st = (NetStub *)res._user_ptr2;
+            if (NET_OP_NOTIFY == res._op_type)
+            {
+                this->done(st, &now);
+                continue;
+            }
             switch (res._status)
             {
                 case NET_DONE:
@@ -146,10 +151,8 @@ void NetProxy::run()
                     continue;
                 case NET_ERROR:
                     st->_errno = res._errno;
-                    this->done(st, &now);
-                    continue;
+                    /* fall through */
                 case NET_EDETACHED:
-                    this->done(st, &now);
                     continue;
                 default:
                     WARNING("should not be here, res._status=%hd", res._status);
