@@ -1,10 +1,22 @@
-libclient: src/*.cpp include/*.h
-	g++ -g -Wall -fPIC -shared -D__CPLUSPLUS -DDEBUG_EPEX -I../lsnet/include -Iinclude src/*.cpp ../lsnet/src/*.c -o libclient.so -lpthread
-client: test/main.cpp
-	g++ -g -Wall -D__CPLUSPLUS -DDEBUG_EPEX -I../lsnet/include -Iinclude src/*.cpp test/main.cpp ../lsnet/src/*.c -o client -lpthread
-client2: test/push.cpp
-	g++ -g -Wall -D__CPLUSPLUS -DLOG_LEVEL=2 -I../lsnet/include -Iinclude src/*.cpp test/push.cpp ../lsnet/src/*.c -o client2 -lpthread
+all: libclient.a client client2
+
+libclient.a: src/client.o src/net_poller.o src/net_proxy.o
+	ar crs $@ $^
+
+src/client.o: src/client.cpp
+	g++ -g -Wall -Iinclude -I../lsnet/include -DLOG_LEVEL=0 -c $^ -o $@
+src/net_poller.o: src/net_poller.cpp
+	g++ -g -Wall -Iinclude -I../lsnet/include -DLOG_LEVEL=0 -c $^ -o $@
+src/net_proxy.o: src/net_proxy.cpp
+	g++ -g -Wall -Iinclude -I../lsnet/include -DLOG_LEVEL=0 -c $^ -o $@
+
+client: test/main.cpp libclient.a
+	g++ -g -Wall -Iinclude -I../lsnet/include test/main.cpp -Xlinker "-(" libclient.a ../lsnet/liblsnet.a -Xlinker "-)" -o client -lpthread
+client2: test/push.cpp libclient.a
+	g++ -g -Wall -Iinclude -I../lsnet/include test/push.cpp -Xlinker "-(" libclient.a ../lsnet/liblsnet.a -Xlinker "-)" -o client2 -lpthread
+
 clean:
-	rm -rf libclient.so
+	rm -rf libclient.a
 	rm -rf client
 	rm -rf client2
+	rm -rf src/*.o
