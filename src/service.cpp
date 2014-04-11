@@ -36,10 +36,8 @@ int Service::init(const char *path, const char *file)
     }
 
     int num;
-    int port;
-    int pool_size;
-    int connect_timeout;
-    std::string addr;
+    server_args args;
+    std::vector<server_args> service_args;
 
     if (!conf.get("server_num", num))
     {
@@ -51,62 +49,71 @@ int Service::init(const char *path, const char *file)
         WARNING("server_num is %d, less than 0", num);
         return -1;
     }
-    _servers = new Server[num];
-    if (NULL == _servers)
-    {
-        WARNING("failed to new servers, num=%d", num);
-        return -1;
-    }
     for (int i = 0; i < num; ++i)
     {
         char buffer[256];
 
         snprintf(buffer, sizeof buffer, "server_%d_ip", i);
-        if (!conf.get(buffer, addr))
+        if (!conf.get(buffer, args.addr))
         {
-            goto FAIL;
+            WARNING("cannot get %s", buffer);
+            return -1;
         }
-        WARNING("%s: %s", buffer, addr.c_str());
+        WARNING("%s: %s", buffer, args.addr.c_str());
 
         snprintf(buffer, sizeof buffer, "server_%d_port", i);
-        if (!conf.get(buffer, port))
+        if (!conf.get(buffer, args.port))
         {
-            goto FAIL;
+            WARNING("cannot get %s", buffer);
+            return -1;
         }
-        WARNING("%s: %d", buffer, port);
+        WARNING("%s: %d", buffer, args.port);
 
         snprintf(buffer, sizeof buffer, "server_%d_pool_size", i);
-        if (!conf.get(buffer, pool_size))
+        if (!conf.get(buffer, args.pool_size))
         {
-            goto FAIL;
+            WARNING("cannot get %s", buffer);
+            return -1;
         }
-        WARNING("%s: %d", buffer, pool_size);
+        WARNING("%s: %d", buffer, args.pool_size);
 
         snprintf(buffer, sizeof buffer, "server_%d_connect_timeout", i);
-        if (!conf.get(buffer, connect_timeout))
+        if (!conf.get(buffer, args.connect_timeout))
         {
-            goto FAIL;
+            WARNING("cannot get %s", buffer);
+            return -1;
         }
-        WARNING("%s: %d", buffer, connect_timeout);
+        WARNING("%s: %d", buffer, args.connect_timeout);
 
-        if (_servers[i].set_addr(addr.c_str(), port) < 0)
-        {
-            WARNING("failed to init server %d", i);
-            goto FAIL;
-        }
-        _servers[i].set_pool_size(pool_size);
-        _servers[i].set_connect_timeout(connect_timeout);
+        service_args.push_back(args);
     }
-    _server_num = num;
-    WARNING("init service ok");
-    return 0;
-FAIL:
-    delete [] _servers;
-    _servers = NULL;
-    return -1;
+    return this->init(service_args);
 }
 
 int Service::init(const std::vector<server_args> &args)
 {
+    _servers = new Server[args.size()];
+    if (NULL == _servers)
+    {
+        WARNING("failed to new Server, num=%d", int(args.size()));
+        return -1;
+    }
+    for (size_t i = 0; i < args.size(); ++i)
+    {
+        if (_servers[i].set_addr(args[i].addr.c_str(), args[i].port) < 0)
+        {
+            WARNING("failed to init server %d", i);
+            goto FAIL;
+        }
+        _servers[i].set_pool_size(args[i].pool_size);
+        _servers[i].set_connect_timeout(args[i].connect_timeout);
+    }
+    _server_num = args.size();
+    WARNING("init Service ok");
     return 0;
+FAIL:
+    delete [] _servers;
+    _servers = NULL;
+    _server_num = 0;
+    return -1;
 }
