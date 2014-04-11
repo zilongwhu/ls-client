@@ -105,3 +105,8 @@ FAIL:
     _servers = NULL;
     return -1;
 }
+
+int Service::init(const std::vector<server_args> &args)
+{
+    return 0;
+}

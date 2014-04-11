@@ -43,6 +43,7 @@ class Service
         }
 
         int init(const char *path, const char *file);
+        int init(const std::vector<server_args> &args);
     private:
         Server *_servers;
         int _server_num;
