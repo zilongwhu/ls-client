@@ -150,8 +150,3 @@ void Server::return_sock(int sock, bool is_ok)
     }
     ++_stats_off;
 }
-
-int Service::init(const char *path, const char *file)
-{
-    return -1;
-}

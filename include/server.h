@@ -69,25 +69,4 @@ class Server
         int8_t _stats[2048];
 };
 
-class Service
-{
-    private:
-        Service(const Service &o);
-        Service &operator =(const Service &o);
-    public:
-        Service() { _servers = NULL; }
-        ~Service()
-        {
-            if (_servers)
-            {
-                delete [] _servers;
-                _servers = NULL;
-            }
-        }
-
-        int init(const char *path, const char *file);
-    private:
-        Server *_servers;
-};
-
 #endif
