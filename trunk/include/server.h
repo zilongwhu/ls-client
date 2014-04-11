@@ -20,7 +20,6 @@
 #define __LS_CLIENT_SERVER_H__
 
 #include <deque>
-#include <vector>
 #include <string>
 #include <sys/socket.h>
 #include "lock.h"

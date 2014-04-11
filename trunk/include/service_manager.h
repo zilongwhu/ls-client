@@ -32,8 +32,8 @@ class ServiceManager
         ServiceManager() { }
         ~ServiceManager() { this->clear(); }
 
-        int init(const char *path, const char *file);
         void clear();
+        int init(const char *path, const char *file);
     private:
         std::map<std::string, Service *> _service_map;
 };

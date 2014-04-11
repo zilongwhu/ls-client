@@ -19,6 +19,7 @@
 #ifndef __LS_CLIENT_SERVICE_H__
 #define __LS_CLIENT_SERVICE_H__
 
+#include <vector>
 #include "server.h"
 
 class Service
