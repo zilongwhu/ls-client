@@ -65,6 +65,7 @@ int connect_ms(int sockfd, const struct sockaddr *addr, socklen_t socklen, int m
         ret = poll(&pfd, 1, ms);
         if (ret == 0)
         {
+            WARNING("connect timeout[%d ms]", ms);
             ret = -2;
         }
         else if (ret == 1)
