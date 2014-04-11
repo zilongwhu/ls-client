@@ -20,9 +20,18 @@
 #define __LS_CLIENT_SERVER_H__
 
 #include <deque>
+#include <vector>
 #include <string>
 #include <sys/socket.h>
 #include "lock.h"
+
+struct server_args
+{
+    int port;
+    int pool_size;
+    int connect_timeout;
+    std::string addr;
+};
 
 class Server
 {
