@@ -67,6 +67,7 @@ int ServiceManager::init(const char *path, const char *file)
         snprintf(buffer, sizeof buffer, "service_%d_name", i);
         if (!conf.get(buffer, service_name))
         {
+            WARNING("cannot get %s", buffer);
             goto FAIL;
         }
         WARNING("%s: %s", buffer, service_name.c_str());
@@ -80,6 +81,7 @@ int ServiceManager::init(const char *path, const char *file)
         snprintf(buffer, sizeof buffer, "service_%d_num", i);
         if (!conf.get(buffer, server_num))
         {
+            WARNING("cannot get %s", buffer);
             goto FAIL;
         }
         WARNING("%s: %d", buffer, server_num);
@@ -96,6 +98,7 @@ int ServiceManager::init(const char *path, const char *file)
             snprintf(buffer, sizeof buffer, "%s_%d_ip", service_name.c_str(), j);
             if (!conf.get(buffer, args.addr))
             {
+                WARNING("cannot get %s", buffer);
                 goto FAIL;
             }
             WARNING("%s: %s", buffer, args.addr.c_str());
@@ -103,6 +106,7 @@ int ServiceManager::init(const char *path, const char *file)
             snprintf(buffer, sizeof buffer, "%s_%d_port", service_name.c_str(), j);
             if (!conf.get(buffer, args.port))
             {
+                WARNING("cannot get %s", buffer);
                 goto FAIL;
             }
             WARNING("%s: %d", buffer, args.port);
@@ -110,6 +114,7 @@ int ServiceManager::init(const char *path, const char *file)
             snprintf(buffer, sizeof buffer, "%s_%d_pool_size", service_name.c_str(), j);
             if (!conf.get(buffer, args.pool_size))
             {
+                WARNING("cannot get %s", buffer);
                 goto FAIL;
             }
             WARNING("%s: %d", buffer, args.pool_size);
@@ -117,6 +122,7 @@ int ServiceManager::init(const char *path, const char *file)
             snprintf(buffer, sizeof buffer, "%s_%d_connect_timeout", service_name.c_str(), j);
             if (!conf.get(buffer, args.connect_timeout))
             {
+                WARNING("cannot get %s", buffer);
                 goto FAIL;
             }
             WARNING("%s: %d", buffer, args.connect_timeout);
@@ -136,6 +142,7 @@ int ServiceManager::init(const char *path, const char *file)
             goto FAIL;
         }
         _service_map.insert(std::make_pair(service_name, svc));
+        WARNING("init Service[%s] ok, i=%d", service_name.c_str(), i);
     }
     WARNING("init service manager ok");
     return 0;
