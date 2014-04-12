@@ -146,7 +146,7 @@ int Service::get_connection(Connection &conn)
         }
     }
     TRACE("service[%s]: avail_server_num=%d, server_num=%d", _name.c_str(), avail_server_num, _server_num);
-    for (int n = 0; n < 3 && n < avail_server_num; ++n) /* retry */
+    for (int n = 0; n < 3 && avail_server_num > 0; ++n) /* retry */
     {
         int idx = conn._key % avail_server_num;
         for (size_t i = 0; i < _server_num; ++i)
