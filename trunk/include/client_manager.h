@@ -47,10 +47,15 @@ class ClientManager
             }
         }
 
-        int post_request(const char *service_name, NetTalkWithConn *talk, int timeout, NetPoller *poller);
-        int poll(NetTalkWithConn **talks, int count, int timeout_ms, NetPoller *poller);
-        void cancel(NetTalkWithConn *talk, NetPoller *poller);
-        void cancelAll(NetPoller *poller);
+        int post_request(const char *service_name, NetTalkWithConn *talk, int timeout, NetPoller *poller = NULL);
+        int poll(NetTalkWithConn **talks, int count, int timeout_ms, NetPoller *poller = NULL);
+        void cancel(NetTalkWithConn *talk, NetPoller *poller = NULL);
+        void cancelAll(NetPoller *poller = NULL);
+
+        int request(const char *service_name,
+                void *req, unsigned int req_len,
+                void *res, unsigned int &res_len,
+                int timeout);
     private:
         NetPoller *get_ts_poller();
     private:
