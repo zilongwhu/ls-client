@@ -92,8 +92,10 @@ int ClientManager::post_request(const char *service_name, NetTalkWithConn *talk,
         WARNING("failed to get connection from service[%s]", service_name);
         return -1;
     }
+    talk->_sock = talk->_conn._sock;
     if (!poller->add(talk, timeout))
     {
+        talk->_sock = -1;
         _services.return_connection(talk->_conn, true);
         WARNING("failed to add to poller");
         return -1;
@@ -120,6 +122,7 @@ int ClientManager::poll(NetTalkWithConn **talks, int count, int timeout_ms, NetP
     int ret = poller->poll((NetTalk **)talks, count, timeout_ms);
     for (int i = 0; i < ret; ++i)
     {
+        talks[i]->_sock = -1;
         _services.return_connection(talks[i]->_conn, talks[i]->_status == NET_ST_DONE);
     }
     return ret;
@@ -142,6 +145,7 @@ void ClientManager::cancel(NetTalkWithConn *talk, NetPoller *poller)
         }
     }
     poller->cancel(talk);
+    talk->_sock = -1;
     _services.return_connection(talk->_conn, false);
 }
 
@@ -161,6 +165,7 @@ void ClientManager::cancelAll(NetPoller *poller)
     poller->cancelAll();
     for (size_t i = 0; i < talks.size(); ++i)
     {
+        talks[i]->_sock = -1;
         _services.return_connection(((NetTalkWithConn *)talks[i])->_conn, false);
     }
 }
@@ -187,4 +192,44 @@ NetPoller *ClientManager::get_ts_poller()
         _pollers.push_back(poller);
     }
     return poller;
+}
+
+int ClientManager::request(const char *service_name,
+        void *req, unsigned int req_len,
+        void *res, unsigned int &res_len,
+        int timeout)
+{
+    if (NULL == service_name || NULL == req || NULL == res)
+    {
+        WARNING("invalid args: service_name=%p, req=%p, res=%p", service_name, req, res);
+        return -1;
+    }
+    NetTalkWithConn talk;
+    ::bzero(&talk, sizeof(talk));
+    talk._req_buf = req;
+    talk._req_len = req_len;
+    talk._res_buf = res;
+    talk._res_len = res_len;
+
+    NetPoller poller(&_client);
+    int ret = this->post_request(service_name, &talk, timeout, &poller);
+    if (ret < 0)
+    {
+        WARNING("failed to post request");
+        return -1;
+    }
+    NetTalkWithConn *talks;
+    ret = poll(&talks, 1, -1, &poller);
+    if (ret != 1 || talks != &talk)
+    {
+        WARNING("something wrong here?");
+        return -1;
+    }
+    if (talk._status != NET_ST_DONE)
+    {
+        WARNING("talk failed, status=%d, errno=%d", talk._status, talk._errno);
+        return -1;
+    }
+    res_len = talk._res_head._body_len;
+    return 0;
 }
