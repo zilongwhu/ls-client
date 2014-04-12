@@ -34,6 +34,14 @@ class ServiceManager
 
         void clear();
         int init(const char *path, const char *file);
+        int get_connection(const char *service_name, Connection &conn);
+        void return_connection(Connection &conn, bool is_ok)
+        {
+            if (conn._server)
+            {
+                conn._server->return_sock(conn._sock, is_ok);
+            }
+        }
     private:
         std::map<std::string, Service *> _service_map;
 };
