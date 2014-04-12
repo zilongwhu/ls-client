@@ -19,6 +19,8 @@
 #ifndef __LS_CLIENT_MANAGER_H__
 #define __LS_CLIENT_MANAGER_H__
 
+#include <pthread.h>
+#include <vector>
 #include "client.h"
 #include "service_manager.h"
 
@@ -29,7 +31,7 @@ class ClientManager
         ClientManager &operator =(const ClientManager &o);
     public:
         ClientManager() { }
-        ~ClientManager() { }
+        ~ClientManager();
 
         int init(const char *path, const char *file);
 
@@ -50,8 +52,13 @@ class ClientManager
         void cancel(NetTalkWithConn *talk, NetPoller *poller);
         void cancelAll(NetPoller *poller);
     private:
+        NetPoller *get_ts_poller();
+    private:
         Client _client;
         ServiceManager _services;
+        pthread_key_t _poller_key;
+        Mutex _mutex;
+        std::vector<NetPoller *> _pollers;
 };
 
 #endif
