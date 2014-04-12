@@ -135,7 +135,7 @@ int ServiceManager::init(const char *path, const char *file)
             WARNING("failed to new Service, i=%d", i);
             goto FAIL;
         }
-        if (svc->init(service_args) < 0)
+        if (svc->init(service_name, service_args) < 0)
         {
             WARNING("failed to init Service, i=%d", i);
             delete svc;
@@ -149,4 +149,20 @@ int ServiceManager::init(const char *path, const char *file)
 FAIL:
     this->clear();
     return -1;
+}
+
+int ServiceManager::get_connection(const char *service_name, Connection &conn)
+{
+    if (NULL == service_name)
+    {
+        WARNING("service_name is NULL");
+        return -1;
+    }
+    std::map<std::string, Service *>::iterator it = _service_map.find(service_name);
+    if (it == _service_map.end())
+    {
+        WARNING("cannot find service[%s]", service_name);
+        return -1;
+    }
+    return it->second->get_connection(conn);
 }

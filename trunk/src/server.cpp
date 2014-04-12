@@ -69,6 +69,24 @@ RET:
     return 0;
 }
 
+int Server::connect()
+{
+    int sock = socket(_addr.ss_family, SOCK_STREAM, 0);
+    if (sock < 0)
+    {
+        WARNING("failed to create sock, error[%s]", strerror_t(errno));
+    }
+    else if (connect_ms(sock, (struct sockaddr *)&_addr, _addrlen, _connect_timeout) < 0)
+    {
+        WARNING("failed to connect to [%s]", _addrstr.c_str());
+
+        SAFE_CLOSE(sock);
+        sock = -1;
+    }
+    _healthy = (sock >= 0);
+    return sock;
+}
+
 int Server::get_avail_sock()
 {
     int sock = -1;
@@ -97,18 +115,7 @@ int Server::get_avail_sock()
     }
     if (sock < 0)
     {
-        sock = socket(_addr.ss_family, SOCK_STREAM, 0);
-        if (sock < 0)
-        {
-            WARNING("failed to create sock, error[%s]", strerror_t(errno));
-        }
-        else if (connect_ms(sock, (struct sockaddr *)&_addr, _addrlen, _connect_timeout) < 0)
-        {
-            WARNING("failed to connect to [%s]", _addrstr.c_str());
-
-            SAFE_CLOSE(sock);
-            sock = -1;
-        }
+        sock = this->connect();
     }
     return sock;
 }

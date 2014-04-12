@@ -20,7 +20,9 @@
 #define __LS_CLIENT_SERVICE_H__
 
 #include <vector>
+#include <string>
 #include "server.h"
+#include "connection.h"
 
 class Service
 {
@@ -43,11 +45,23 @@ class Service
             _server_num = 0;
         }
 
+        const char *name() const { return _name.c_str(); }
+
         int init(const char *path, const char *file);
-        int init(const std::vector<server_args> &args);
+        int init(const std::string &name, const std::vector<server_args> &args);
+        int get_connection(Connection &conn);
+        void return_connection(Connection &conn, bool is_ok)
+        {
+            if (conn._server)
+            {
+                conn._server->return_sock(conn._sock, is_ok);
+            }
+        }
+        void check_healthy();
     private:
         Server *_servers;
         int _server_num;
+        std::string _name;
 };
 
 #endif
