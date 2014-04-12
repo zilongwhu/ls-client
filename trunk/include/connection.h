@@ -20,12 +20,18 @@
 #define __LS_CLIENT_CONNECTION_H__
 
 #include "server.h"
+#include "net_talk.h"
 
 struct Connection
 {
     int _key;
     int _sock;
     Server *_server;
+};
+
+struct NetTalkWithConn: public NetTalk
+{
+    Connection _conn;
 };
 
 #endif

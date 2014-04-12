@@ -41,7 +41,10 @@ class ServiceManager
             {
                 conn._server->return_sock(conn._sock, is_ok);
             }
+            conn._sock = -1;
+            conn._server = NULL;
         }
+        void check_healthy();
     private:
         std::map<std::string, Service *> _service_map;
 };

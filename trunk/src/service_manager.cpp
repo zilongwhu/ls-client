@@ -166,3 +166,12 @@ int ServiceManager::get_connection(const char *service_name, Connection &conn)
     }
     return it->second->get_connection(conn);
 }
+
+void ServiceManager::check_healthy()
+{
+    std::map<std::string, Service *>::iterator it = _service_map.begin();
+    while (it == _service_map.end())
+    {
+        it->second->check_healthy();
+    }
+}

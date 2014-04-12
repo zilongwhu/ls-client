@@ -140,3 +140,15 @@ RETRY:
     }
     goto RETRY;
 }
+
+void NetPoller::getTalks(std::vector<NetTalk *> &talks)
+{
+    talks.clear();
+
+    __dlist *p;
+    while (!DLIST_EMPTY(&_list))
+    {
+        p = DLIST_NEXT(&_list);
+        talks.push_back(GET_OWNER(p, NetStub, _list)->_talk);
+    }
+}

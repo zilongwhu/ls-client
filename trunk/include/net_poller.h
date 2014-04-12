@@ -18,6 +18,7 @@
 #ifndef __LS_CLIENT_NET_POLLER_H__
 #define __LS_CLIENT_NET_POLLER_H__
 
+#include <vector>
 #include "lock.h"
 #include "dlist.h"
 #include "net_talk.h"
@@ -45,6 +46,8 @@ class NetPoller
         void cancel(NetTalk *talk);
         void cancelAll();
         int poll(NetTalk **talks, int count, int timeout_ms);
+
+        void getTalks(std::vector<NetTalk *> &talks);
     private:
         int poll(NetTalk *talk);
         void done(NetStub *st);
