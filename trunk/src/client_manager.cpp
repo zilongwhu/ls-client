@@ -20,11 +20,27 @@
 #include "configure.h"
 #include "client_manager.h"
 
+ClientManager::~ClientManager()
+{
+    pthread_key_delete(_poller_key);
+    for (size_t i = 0; i < _pollers.size(); ++i)
+    {
+        delete _pollers[i];
+    }
+    _pollers.clear();
+}
+
 int ClientManager::init(const char *path, const char *file)
 {
     if (NULL == path || NULL == file)
     {
         WARNING("invalid args: path=%p, file=%p", path, file);
+        return -1;
+    }
+    int ret = pthread_key_create(&_poller_key, NULL);
+    if (ret)
+    {
+        WARNING("failed to create _poller_key, error=%d", ret);
         return -1;
     }
     Config conf(path, file);
@@ -57,10 +73,19 @@ int ClientManager::init(const char *path, const char *file)
 
 int ClientManager::post_request(const char *service_name, NetTalkWithConn *talk, int timeout, NetPoller *poller)
 {
-    if (NULL == service_name || NULL == talk || NULL == poller)
+    if (NULL == service_name || NULL == talk)
     {
-        WARNING("invalid args");
+        WARNING("invalid args: service_name=%p, talk=%p", service_name, talk);
         return -1;
+    }
+    if (NULL == poller)
+    {
+        poller = this->get_ts_poller();
+        if (NULL == poller)
+        {
+            WARNING("failed to get ts poller");
+            return -1;
+        }
     }
     if (_services.get_connection(service_name, talk->_conn) < 0)
     {
@@ -78,6 +103,20 @@ int ClientManager::post_request(const char *service_name, NetTalkWithConn *talk,
 
 int ClientManager::poll(NetTalkWithConn **talks, int count, int timeout_ms, NetPoller *poller)
 {
+    if (NULL == talks || count < 0)
+    {
+        WARNING("invalid args: talks=%p, count=%d", talks, count);
+        return -1;
+    }
+    if (NULL == poller)
+    {
+        poller = this->get_ts_poller();
+        if (NULL == poller)
+        {
+            WARNING("failed to get ts poller");
+            return -1;
+        }
+    }
     int ret = poller->poll((NetTalk **)talks, count, timeout_ms);
     for (int i = 0; i < ret; ++i)
     {
@@ -88,12 +127,35 @@ int ClientManager::poll(NetTalkWithConn **talks, int count, int timeout_ms, NetP
 
 void ClientManager::cancel(NetTalkWithConn *talk, NetPoller *poller)
 {
+    if (NULL == talk)
+    {
+        WARNING("invalid args: talk=%p", talk);
+        return ;
+    }
+    if (NULL == poller)
+    {
+        poller = this->get_ts_poller();
+        if (NULL == poller)
+        {
+            WARNING("failed to get ts poller");
+            return ;
+        }
+    }
     poller->cancel(talk);
     _services.return_connection(talk->_conn, false);
 }
 
 void ClientManager::cancelAll(NetPoller *poller)
 {
+    if (NULL == poller)
+    {
+        poller = this->get_ts_poller();
+        if (NULL == poller)
+        {
+            WARNING("failed to get ts poller");
+            return ;
+        }
+    }
     std::vector<NetTalk *> talks;
     poller->getTalks(talks);
     poller->cancelAll();
@@ -101,4 +163,28 @@ void ClientManager::cancelAll(NetPoller *poller)
     {
         _services.return_connection(((NetTalkWithConn *)talks[i])->_conn, false);
     }
+}
+
+NetPoller *ClientManager::get_ts_poller()
+{
+    NetPoller *poller = (NetPoller *)pthread_getspecific(_poller_key);
+    if (NULL == poller)
+    {
+        poller = this->create_poller();
+        if (NULL == poller)
+        {
+            WARNING("failed to create poller");
+            return NULL;
+        }
+        int ret = pthread_setspecific(_poller_key, poller);
+        if (ret)
+        {
+            WARNING("pthread_setspecific failed, error=%d", ret);
+            this->destroy_poller(poller);
+            return NULL;
+        }
+        AutoLock __lock(_mutex);
+        _pollers.push_back(poller);
+    }
+    return poller;
 }
