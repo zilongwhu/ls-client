@@ -22,6 +22,8 @@
 
 ClientManager::~ClientManager()
 {
+    _stopping = true;
+    pthread_join(_checker_tid, NULL);
     pthread_key_delete(_poller_key);
     for (size_t i = 0; i < _pollers.size(); ++i)
     {
@@ -68,6 +70,13 @@ int ClientManager::init(const char *path, const char *file)
         return -1;
     }
     WARNING("init services ok");
+    ret = pthread_create(&_checker_tid, NULL, healthy_checker, this);
+    if (ret)
+    {
+        WARNING("failed to create healthy checker thread, error=%d", ret);
+        return -1;
+    }
+    WARNING("init client manager ok");
     return 0;
 }
 

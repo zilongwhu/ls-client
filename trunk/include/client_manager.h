@@ -30,7 +30,7 @@ class ClientManager
         ClientManager(const ClientManager &o);
         ClientManager &operator =(const ClientManager &o);
     public:
-        ClientManager() { }
+        ClientManager() { _stopping = false; }
         ~ClientManager();
 
         int init(const char *path, const char *file);
@@ -58,12 +58,24 @@ class ClientManager
                 int timeout);
     private:
         NetPoller *get_ts_poller();
+        static void *healthy_checker(void *args)
+        {
+            ClientManager *manager = (ClientManager *)args;
+            while (!manager->_stopping)
+            {
+                sleep(1);
+                manager->_services.check_healthy();
+            }
+            return NULL;
+        }
     private:
         Client _client;
         ServiceManager _services;
         pthread_key_t _poller_key;
         Mutex _mutex;
         std::vector<NetPoller *> _pollers;
+        volatile bool _stopping;
+        pthread_t _checker_tid;
 };
 
 #endif
