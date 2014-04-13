@@ -55,7 +55,7 @@ class ClientManager
         int request(const char *service_name,
                 void *req, unsigned int req_len,
                 void *res, unsigned int &res_len,
-                int timeout);
+                int timeout, int key = -1);
     private:
         NetPoller *get_ts_poller();
         static void *healthy_checker(void *args)
