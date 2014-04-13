@@ -19,6 +19,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <poll.h>
+#include <sys/time.h>
 #include "log.h"
 #include "error.h"
 #include "net_utils.h"
@@ -62,13 +63,50 @@ int connect_ms(int sockfd, const struct sockaddr *addr, socklen_t socklen, int m
         pfd.fd = sockfd;
         pfd.events = POLLIN | POLLOUT;
         pfd.revents = 0;
-        ret = poll(&pfd, 1, ms);
-        if (ret == 0)
+        int tm = ms;
+        struct timeval st;
+        struct timeval ed;
+        if (ms >= 0)
+        {
+            gettimeofday(&st, NULL);
+        }
+AGAIN:
+        ret = poll(&pfd, 1, tm);
+        if (ret < 0)
+        {
+            if (errno == EAGAIN || errno == EINTR)
+            {
+                if (ms >= 0)
+                {
+                    gettimeofday(&ed, NULL);
+                    int time_cost = (ed.tv_sec - st.tv_sec) * 1000 + (long(ed.tv_usec) - long(st.tv_usec)) / 1000;
+                    if (time_cost >= ms)
+                    {
+                        WARNING("connect timeout[%d ms]", ms);
+                        ret = -2;
+                    }
+                    else
+                    {
+                        tm = ms - time_cost;
+                        goto AGAIN;
+                    }
+                }
+                else
+                {
+                    goto AGAIN;
+                }
+            }
+            else
+            {
+                WARNING("poll error[%s]", strerror_t(errno));
+            }
+        }
+        else if (ret == 0)
         {
             WARNING("connect timeout[%d ms]", ms);
             ret = -2;
         }
-        else if (ret == 1)
+        else
         {
             if ((pfd.revents & POLLIN) || (pfd.revents & POLLOUT))
             {

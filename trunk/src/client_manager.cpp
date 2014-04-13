@@ -206,7 +206,7 @@ NetPoller *ClientManager::get_ts_poller()
 int ClientManager::request(const char *service_name,
         void *req, unsigned int req_len,
         void *res, unsigned int &res_len,
-        int timeout)
+        int timeout, int key)
 {
     if (NULL == service_name || NULL == req || NULL == res)
     {
@@ -219,6 +219,7 @@ int ClientManager::request(const char *service_name,
     talk._req_len = req_len;
     talk._res_buf = res;
     talk._res_len = res_len;
+    talk._conn._key = key;
 
     NetPoller poller(&_client);
     int ret = this->post_request(service_name, &talk, timeout, &poller);
