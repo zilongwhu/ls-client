@@ -1,12 +1,11 @@
 /*
  * =====================================================================================
  *
- *       Filename:  server.cpp
+ *       Filename:  service.cpp
  *
  *    Description:  
  *
  *        Version:  1.0
- *        Created:  04/11/2014 09:11:06 PM
  *        Created:  04/11/2014 11:12:49 PM
  *       Revision:  none
  *       Compiler:  gcc
