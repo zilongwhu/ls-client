@@ -21,6 +21,7 @@
 
 #include <deque>
 #include <string>
+#include <strings.h>
 #include <sys/socket.h>
 #include "lock.h"
 

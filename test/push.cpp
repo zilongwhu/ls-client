@@ -47,7 +47,7 @@ void *worker(void *args)
         NetTalk talk[128];
 
         NOTICE("start to process.");
-        for (int i = 0; i < sizeof socks/sizeof socks[0]; ++i)
+        for (size_t i = 0; i < sizeof socks/sizeof socks[0]; ++i)
         {
             socks[i] = socket(AF_INET, SOCK_STREAM, 0);
             if (socks[i] < 0)
@@ -103,7 +103,7 @@ void *worker(void *args)
 
 int main(int argc, char *argv[])
 {
-    for (int i = 0; i < sizeof req_buf/sizeof req_buf[0]; ++i)
+    for (size_t i = 0; i < sizeof req_buf/sizeof req_buf[0]; ++i)
         req_buf[i] = rand()%26 + (rand()%2 ? 'a' : 'A');
 
     client.init();

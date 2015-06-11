@@ -24,6 +24,10 @@
 #include "error.h"
 #include "net_utils.h"
 
+#ifndef NULL
+#define NULL 0
+#endif
+
 int connect_ms(int sockfd, const struct sockaddr *addr, socklen_t socklen, int ms)
 {
     if (sockfd < 0)

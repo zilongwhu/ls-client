@@ -19,6 +19,7 @@
 #include "log.h"
 #include "configure.h"
 #include "service_manager.h"
+#include <stdio.h>
 
 void ServiceManager::clear()
 {
